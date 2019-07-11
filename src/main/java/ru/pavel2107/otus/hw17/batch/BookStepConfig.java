@@ -11,6 +11,7 @@ import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,6 +27,7 @@ import org.springframework.integration.support.MessageBuilder;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.messaging.Message;
+import ru.pavel2107.otus.hw17.integration.IntegrationConfig;
 import ru.pavel2107.otus.hw17.mongoDB.domain.MongoAuthor;
 import ru.pavel2107.otus.hw17.mongoDB.domain.MongoBook;
 import ru.pavel2107.otus.hw17.mongoDB.domain.MongoGenre;
@@ -44,10 +46,11 @@ public class BookStepConfig {
 
     @Autowired private StepBuilderFactory stepBuilderFactory;
     @Autowired private DataSource dataSource;
-    @Autowired private MongoTemplate mongoTemplate;
     @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
 
-    @Autowired private ApplicationContext context;
+    @Qualifier( "bookInterface")
+    @Autowired private IntegrationConfig.bookInterface bookInterface;
+
 
     @Bean
     JdbcCursorItemReader<Book> readerBook(){
@@ -83,22 +86,17 @@ public class BookStepConfig {
 
             return book;
         });
-
         return reader;
     }
 
     @Bean
     ItemWriter writerBook(){
         return (ItemWriter<MongoBook>) list -> {
-            DirectChannel bookChannel = context.getBean( "bookChannel", DirectChannel.class);
             for( int i = 0; i < list.size(); i++){
                 MongoBook mongoBook = list.get( i);
-                Message<MongoBook> bookMessage = MessageBuilder
-                        .withPayload(mongoBook)
-                        .setHeader("command", "save")
-                        .build();
-                bookChannel.send(bookMessage);
-                logger.info( "Отправляем Author.id=" + mongoBook.getId());
+                logger.info( "Отправляем Book.id=" + mongoBook.getId());
+                bookInterface.process( mongoBook);
+                logger.info( "Отправили Book.id=" + mongoBook.getId());
             }
         };
     }
@@ -115,38 +113,12 @@ public class BookStepConfig {
             mongoBook.setAuthor( a);
 
             MongoGenre g = new MongoGenre();
-            g.setId( book.getAuthor().getId().toString());
+            g.setId( book.getGenre().getId().toString());
             mongoBook.setGenre( g);
 
             return mongoBook;
         };
     }
-
-    //
-    // переносим только жанр фантастики
-    //
-    @Bean
-    public IntegrationFlow bookFlow(){
-        return IntegrationFlows.from( "bookChannel")
-                .filter( MongoBook.class, mongoBook ->{
-                        boolean result =  mongoBook.getGenre().getId().equals("1");
-                        if( result){
-                            System.out.println( "Книгу " + mongoBook.getName() + " переносим");
-                        }
-                        else {
-                            System.out.println( "Книгу " + mongoBook.getName() + " НЕ переносим");
-                        }
-                        return result;
-                } )
-                .handle( message -> {
-                    System.out.println( message);
-                    MongoBook mongoBook = (MongoBook)message.getPayload();
-                    logger.info( "Записываем genre.id=" + mongoBook.getId());
-                    mongoTemplate.save( mongoBook);
-                })
-                .get();
-    }
-
 
     @Bean
     public Step stepBook( JdbcCursorItemReader<Book> readerBook, ItemWriter writerBook, ItemProcessor processorBook){

@@ -11,21 +11,16 @@ import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.mongodb.core.MongoTemplate;
 
 import javax.sql.DataSource;
 import java.util.List;
 
-import org.springframework.integration.channel.DirectChannel;
-import org.springframework.integration.dsl.IntegrationFlow;
-import org.springframework.integration.dsl.IntegrationFlows;
-import org.springframework.integration.support.MessageBuilder;
-import org.springframework.messaging.Message;
+import ru.pavel2107.otus.hw17.integration.IntegrationConfig;
 import ru.pavel2107.otus.hw17.mongoDB.domain.MongoAuthor;
-import ru.pavel2107.otus.hw17.mongoDB.domain.MongoGenre;
 import ru.pavel2107.otus.hw17.rdbms.domain.Author;
 
 @Configuration
@@ -37,11 +32,12 @@ public class AuthorStepConfig {
 
         @Autowired private StepBuilderFactory stepBuilderFactory;
         @Autowired private DataSource dataSource;
-        @Autowired private MongoTemplate mongoTemplate;
 
-        @Autowired private ApplicationContext context;
+        @Qualifier( "authorInterface")
+        @Autowired private IntegrationConfig.authorInterface authorInterface;
 
-        @Bean
+
+    @Bean
         JdbcCursorItemReader<Author> readerAuthor(){
             JdbcCursorItemReader<Author> reader = new JdbcCursorItemReader<>();
             reader.setDataSource( dataSource);
@@ -56,18 +52,16 @@ public class AuthorStepConfig {
             return reader;
         }
 
+
+
         @Bean
         ItemWriter writerAuthor(){
             return (ItemWriter<MongoAuthor>) list -> {
-                DirectChannel authorChannel = context.getBean( "authorChannel", DirectChannel.class);
                 for( int i = 0; i < list.size(); i++){
                     MongoAuthor mongoAuthor = list.get( i);
-                    Message<MongoAuthor> genreMessage = MessageBuilder
-                            .withPayload(mongoAuthor)
-                            .setHeader("command", "save")
-                            .build();
-                    authorChannel.send(genreMessage);
                     logger.info( "Отправляем Author.id=" + mongoAuthor.getId());
+                    authorInterface.process( mongoAuthor);
+                    logger.info( "Отправили Author.id=" + mongoAuthor.getId());
                 }
             };
         }
@@ -81,23 +75,6 @@ public class AuthorStepConfig {
                 return mongoAuthor;
             };
         }
-
-
-    //
-    // переносим всех авторов
-    //
-    @Bean
-    public IntegrationFlow authorFlow(){
-        return IntegrationFlows.from( "authorChannel")
-                .handle( message -> {
-                    System.out.println( message);
-                    MongoAuthor mongoAuthor = (MongoAuthor)message.getPayload();
-                    logger.info( "Записываем genre.id=" + mongoAuthor.getId());
-                    mongoTemplate.save( mongoAuthor);
-                })
-                .get();
-    }
-
 
         @Bean
         public Step stepAuthor( JdbcCursorItemReader<Author> readerAuthor, ItemWriter writerAuthor, ItemProcessor processorAuthor){
