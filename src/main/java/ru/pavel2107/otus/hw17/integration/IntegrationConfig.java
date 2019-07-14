@@ -36,7 +36,17 @@ public class IntegrationConfig {
     @Bean
     public IntegrationFlow genreFlow(){
         return IntegrationFlows.from( "genreChannelIn")
-                .filter( MongoGenre.class, mongoGenre -> mongoGenre.getId().equals("2") )
+                .filter( MongoGenre.class, mongoGenre -> {
+                    boolean result = mongoGenre.getId().equals("2");
+                    if( result){
+                        logger.info( "Жанр " + mongoGenre.getName() + " переносим");
+                    }
+                    else {
+                        logger.info( "Жанр " + mongoGenre.getName() + " НЕ переносим");
+                    }
+                    return result;
+                }
+                )
                 .handle( message -> {
                     MongoGenre mongoGenre = (MongoGenre )message.getPayload();
                     logger.info( "Записываем genre.id=" + mongoGenre.getId());
@@ -82,10 +92,10 @@ public class IntegrationConfig {
                 .filter( MongoBook.class, mongoBook ->{
                     boolean result =  mongoBook.getGenre().getId().equals("2");
                     if( result){
-                        System.out.println( "Книгу " + mongoBook.getName() + " переносим");
+                        logger.info( "Книгу " + mongoBook.getName() + " переносим");
                     }
                     else {
-                        System.out.println( "Книгу " + mongoBook.getName() + " НЕ переносим");
+                        logger.info( "Книгу " + mongoBook.getName() + " НЕ переносим");
                     }
                     return result;
                 } )
