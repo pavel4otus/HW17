@@ -21,5 +21,4 @@ public @ToString class MongoBook {
     @Setter @Getter private String    publicationPlace;
     @Setter @Getter private String    isbn;
     @Setter @Getter private List<MongoComment> comments;
-
 }

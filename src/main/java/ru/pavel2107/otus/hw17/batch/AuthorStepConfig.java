@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Configuration;
 import javax.sql.DataSource;
 import java.util.List;
 
+import org.springframework.integration.annotation.IntegrationComponentScan;
 import ru.pavel2107.otus.hw17.integration.IntegrationConfig;
 import ru.pavel2107.otus.hw17.mongoDB.domain.MongoAuthor;
 import ru.pavel2107.otus.hw17.rdbms.domain.Author;

@@ -13,9 +13,7 @@ import java.time.LocalDateTime;
 // name - имя пользователя
 // comment - сам сомментарий
 //
-
 public class MongoComment {
-
     @Setter @Getter private String name;
     @Setter @Getter private LocalDateTime dateTime;
     @Setter @Getter private String comment;

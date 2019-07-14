@@ -30,5 +30,4 @@ public @ToString class Author {
 
     @Column( name = "address")
     @Setter @Getter private String    address;
-
 }

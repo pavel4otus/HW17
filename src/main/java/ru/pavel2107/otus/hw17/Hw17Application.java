@@ -6,13 +6,7 @@ import org.springframework.context.ApplicationContext;
 
 @SpringBootApplication
 public class Hw17Application {
-
-
     public static void main(String[] args)  throws Exception {
         ApplicationContext context = SpringApplication.run(Hw17Application.class, args);
-
     }
-
-
-
 }

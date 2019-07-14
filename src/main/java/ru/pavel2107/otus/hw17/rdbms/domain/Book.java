@@ -43,5 +43,4 @@ public @ToString class Book {
 
     @OneToMany( mappedBy = "book", fetch = FetchType.LAZY)
     @Setter @Getter private List<Comment> comments;
-
 }

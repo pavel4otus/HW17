@@ -38,5 +38,4 @@ public @ToString class Comment {
     @ManyToOne
     @JoinColumn( name="book_id")
     @Setter @Getter private Book book;
-
 }
